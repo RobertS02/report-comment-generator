@@ -1,16 +1,14 @@
 import React, { useState } from "react";
 
-// Simple UI
+// UI
 const Box = ({ children }) => (
-  <div style={{ border: "1px solid #ccc", padding: 12, marginBottom: 10, borderRadius: 8 }}>
+  <div style={{ border: "1px solid #ccc", padding: 12, marginBottom: 10 }}>
     {children}
   </div>
 );
 
-const Button = ({ children, ...props }) => (
-  <button style={{ padding: 8, marginTop: 6 }} {...props}>
-    {children}
-  </button>
+const Button = (props) => (
+  <button style={{ padding: 8, marginTop: 6 }} {...props} />
 );
 
 // SETTINGS
@@ -23,64 +21,52 @@ const subjects = [
   "Afrikaans First Additional Language"
 ];
 
-const effortPhrases = [
-  "consistent effort",
-  "steady effort",
-  "a good level of effort",
-  "a developing level of effort"
-];
-
 const openings = [
   "^n demonstrates",
   "^n shows",
-  "^n continues to show",
-  "^n is developing"
+  "^n continues to show"
+];
+
+const effortPhrases = [
+  "consistent effort",
+  "a good level of effort",
+  "a steady level of effort",
+  "a developing level of effort"
 ];
 
 const performanceStarters = [
-  "has shown",
   "demonstrates",
-  "continues to build",
-  "is developing"
+  "has shown",
+  "continues to build"
 ];
 
 const subjectPhrases = {
   Mathematics: [
     "a solid understanding of key concepts",
-    "a growing confidence in problem-solving",
-    "a good grasp of the work covered",
-    "increasing confidence in applying skills"
+    "a growing confidence in problem-solving"
   ],
   "English Home Language": [
     "confidence in reading and writing",
-    "a good understanding of language skills",
-    "a growing ability to express ideas clearly",
-    "steady progress in comprehension and writing"
+    "a growing ability to express ideas clearly"
   ],
   "Afrikaans First Additional Language": [
     "good progress in reading and writing",
-    "a growing understanding of the language",
-    "steady development in language usage",
-    "increasing confidence in Afrikaans"
+    "a growing understanding of the language"
   ]
 };
 
 const topicStarters = [
   "has engaged with topics such as",
-  "has worked with topics including",
-  "has covered areas such as",
-  "has been introduced to concepts such as"
+  "has worked with topics including"
 ];
 
 const behaviourPhrases = [
   "works well in the classroom",
-  "is a positive part of the class",
   "contributes positively to the learning environment"
 ];
 
 const concernStarters = [
   "should focus on improving",
-  "needs to work on",
   "would benefit from improving"
 ];
 
@@ -99,27 +85,41 @@ function getReference(step, gender) {
   return ["^n", p, p, "^n", p][step % 5];
 }
 
-// ✅ FIX 1: Capitalisation
+// ✅ CAPITALISATION
 function fixSentence(sentence) {
-  if (!sentence) return "";
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
-// ✅ FIX 2: Basic spelling clean-up
-function cleanInput(text) {
+// ✅ STYLE GUIDE CLEANER (CRITICAL)
+function applyStyleGuide(text) {
   if (!text) return "";
+
   return text
+    .replace(/learner|pupil|boy|girl/gi, "student")
+    .replace(/maths/gi, "Mathematics")
+    .replace(/classwork/gi, "class work")
+    .replace(/cocurricular/gi, "co-curricular")
+    .replace(/insightfil/gi, "insightful")
     .replace(/triganomotary/gi, "trigonometry")
+    .replace(/needs /gi, "should ")
+    .replace(/organise/gi, "organize")
+    .replace(/realise/gi, "realize")
+    .replace(/recognise/gi, "recognize")
+    .replace(/focussed/gi, "focused")
+    .replace(/analyse/gi, "analyse") // enforce correct use
     .trim();
 }
 
-// MAIN COMPONENT
+// MAIN
 export default function App() {
-  const [subject, setSubject] = useState(subjects[0]);
-  const [topics, setTopics] = useState("");
-  const [traits, setTraits] = useState("");
-  const [concern, setConcern] = useState("");
+  const [name, setName] = useState("");
   const [gender, setGender] = useState("male");
+  const [subject, setSubject] = useState(subjects[0]);
+  const [traits, setTraits] = useState("");
+  const [behaviour, setBehaviour] = useState("");
+  const [topics, setTopics] = useState("");
+  const [capabilities, setCapabilities] = useState("");
+  const [concern, setConcern] = useState("");
   const [length, setLength] = useState("medium");
   const [comment, setComment] = useState("");
 
@@ -128,38 +128,48 @@ export default function App() {
     let step = 0;
     const limit = charLimits[length];
 
-    // Clean inputs
-    const cleanTopics = cleanInput(topics);
-    const cleanTraits = cleanInput(traits);
-    const cleanConcern = cleanInput(concern);
+    // CLEAN INPUTS
+    const cleanTraits = applyStyleGuide(traits);
+    const cleanTopics = applyStyleGuide(topics);
+    const cleanConcern = applyStyleGuide(concern);
+    const cleanCapabilities = applyStyleGuide(capabilities);
 
     const add = (sentence) => {
-      const fixed = fixSentence(sentence);
+      const fixed = applyStyleGuide(fixSentence(sentence));
       if ((text + " " + fixed).trim().length <= limit) {
         text += (text ? " " : "") + fixed;
       }
     };
 
-    // Opening
-    add(`${pick(openings)} ${pick(effortPhrases)} in ${subject}.`);
+    // FIX REPETITION
+    let opening = pick(openings);
+    let effort = pick(effortPhrases);
+    if (opening.includes("developing") && effort.includes("developing")) {
+      effort = "steady effort";
+    }
 
-    // Performance (improved flow)
+    add(`${opening} ${effort} in ${subject}.`);
+
     add(`${getReference(step++, gender)} ${pick(performanceStarters)} ${pick(subjectPhrases[subject])} and is becoming more confident.`);
 
-    // Topics
     if (cleanTopics) {
       add(`${getReference(step++, gender)} ${pick(topicStarters)} ${cleanTopics}.`);
     }
 
-    // ✅ FIX: Traits grammar
+    if (cleanCapabilities) {
+      add(`${getReference(step++, gender)} shows ${cleanCapabilities}.`);
+    }
+
     if (cleanTraits) {
       add(`${getReference(step++, gender)} is ${cleanTraits}.`);
     }
 
-    // Behaviour
-    add(`${getReference(step++, gender)} ${pick(behaviourPhrases)}.`);
+    if (behaviour) {
+      add(`${getReference(step++, gender)} ${applyStyleGuide(behaviour)}.`);
+    } else {
+      add(`${getReference(step++, gender)} ${pick(behaviourPhrases)}.`);
+    }
 
-    // Concern
     if (cleanConcern) {
       add(`${getReference(step++, gender)} ${pick(concernStarters)} ${cleanConcern}.`);
     }
@@ -172,16 +182,24 @@ export default function App() {
       <h1>Report Comment Generator</h1>
 
       <Box>
-        <label>Subject</label>
-        <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-          {subjects.map((s) => <option key={s}>{s}</option>)}
-        </select>
+        <input placeholder="Learner name" value={name} onChange={(e) => setName(e.target.value)} />
 
         <label>Gender</label>
         <select value={gender} onChange={(e) => setGender(e.target.value)}>
           <option value="male">Male</option>
           <option value="female">Female</option>
         </select>
+
+        <label>Subject</label>
+        <select value={subject} onChange={(e) => setSubject(e.target.value)}>
+          {subjects.map((s) => <option key={s}>{s}</option>)}
+        </select>
+
+        <input placeholder="Learner traits" value={traits} onChange={(e) => setTraits(e.target.value)} />
+        <input placeholder="Behaviour" value={behaviour} onChange={(e) => setBehaviour(e.target.value)} />
+        <input placeholder="Topics covered" value={topics} onChange={(e) => setTopics(e.target.value)} />
+        <input placeholder="Capabilities" value={capabilities} onChange={(e) => setCapabilities(e.target.value)} />
+        <input placeholder="Area of concern" value={concern} onChange={(e) => setConcern(e.target.value)} />
 
         <label>Length</label>
         <select value={length} onChange={(e) => setLength(e.target.value)}>
@@ -190,12 +208,7 @@ export default function App() {
           <option value="long">Long</option>
         </select>
 
-        <input placeholder="Topics covered" value={topics} onChange={(e) => setTopics(e.target.value)} />
-        <input placeholder="Learner traits" value={traits} onChange={(e) => setTraits(e.target.value)} />
-        <input placeholder="Area of concern" value={concern} onChange={(e) => setConcern(e.target.value)} />
-
         <Button onClick={generate}>Generate Comment</Button>
-
         <p>Characters: {comment.length} / {charLimits[length]}</p>
       </Box>
 
@@ -205,4 +218,3 @@ export default function App() {
     </div>
   );
 }
-``
