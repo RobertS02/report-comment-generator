@@ -8,7 +8,7 @@ const Box = ({ children }) => (
 );
 
 const Button = (props) => (
-  <button style={{ padding: 8, marginTop: 6 }} {...props} />
+  <button style={{ padding: 8, marginTop: 6, marginRight: 5 }} {...props} />
 );
 
 // SETTINGS
@@ -27,19 +27,10 @@ const pronouns = {
 };
 
 // HELPERS
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function getPronoun(gender) {
-  return pronouns[gender] || "they";
-}
-
 function capitalise(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-// ✅ STYLE GUIDE CLEANER
 function applyStyleGuide(text) {
   if (!text) return "";
 
@@ -79,7 +70,7 @@ function generateComment(data) {
     }
   };
 
-  // ✅ 1. Traits + behaviour (human opening)
+  // ✅ 1. Traits + Behaviour
   if (cleanTraits && cleanBehaviour) {
     add(`^n is ${cleanTraits} and ${cleanBehaviour}, and ${p} approaches lessons with a positive attitude`);
   } else if (cleanTraits) {
@@ -120,7 +111,7 @@ export default function App() {
   const [comment, setComment] = useState("");
   const [bulkComments, setBulkComments] = useState([]);
 
-  // ✅ SINGLE COMMENT
+  // ✅ Single
   const generate = () => {
     const result = generateComment({
       name,
@@ -137,7 +128,7 @@ export default function App() {
     setComment(result);
   };
 
-  // ✅ BULK CSV UPLOAD
+  // ✅ BULK UPLOAD
   const handleUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -148,7 +139,17 @@ export default function App() {
       const rows = event.target.result.split("\n").slice(1);
 
       const generated = rows.map((row) => {
-        const [name, gender, subject, traits, behaviour, topics, capabilities, concern, length] = row.split(",");
+        const [
+          name,
+          gender,
+          subject,
+          traits,
+          behaviour,
+          topics,
+          capabilities,
+          concern,
+          length
+        ] = row.split(",");
 
         if (!name) return null;
 
@@ -172,7 +173,7 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // ✅ EXPORT TO WORD
+  // ✅ EXPORT WORD
   const exportToWord = () => {
     const all = [comment, ...bulkComments].join("\n\n");
 
@@ -181,6 +182,27 @@ export default function App() {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "report-comments.doc";
+    a.click();
+  };
+
+  // ✅ DOWNLOAD TEMPLATE
+  const downloadTemplate = () => {
+    const headers =
+      "name,gender,subject,traits,behaviour,topics,capabilities,concern,length\n";
+
+    const example1 =
+      "John,male,Mathematics,positive and respectful,well-behaved,algebra,strong problem-solving,accuracy,medium\n";
+
+    const example2 =
+      "Lisa,female,English Home Language,focused and motivated,engaging,essay writing,clear expression,grammar,long";
+
+    const csv = headers + example1 + example2;
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+
+    a.href = URL.createObjectURL(blob);
+    a.download = "report_template.csv";
     a.click();
   };
 
@@ -216,8 +238,13 @@ export default function App() {
           <option value="long">Long</option>
         </select>
 
+        <br />
+
         <Button onClick={generate}>Generate Comment</Button>
         <Button onClick={exportToWord}>Export to Word</Button>
+        <Button onClick={downloadTemplate}>Download Excel Template</Button>
+
+        <br />
 
         <input type="file" accept=".csv" onChange={handleUpload} />
 
@@ -236,6 +263,7 @@ export default function App() {
           ))}
         </Box>
       )}
+
     </div>
   );
 }
