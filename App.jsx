@@ -11,7 +11,7 @@ const Button = (props) => (
   <button style={{ padding: 8, margin: 5 }} {...props} />
 );
 
-// SETTINGS (UPDATED ✅)
+// SETTINGS
 const charLimits = { short: 200, medium: 400, long: 600 };
 
 const pronouns = { male: "he", female: "she" };
@@ -25,7 +25,6 @@ function clean(value) {
   return value ? value.trim() : "";
 }
 
-// ✅ STYLE GUIDE
 function applyStyleGuide(text) {
   if (!text) return "";
   return text
@@ -33,100 +32,77 @@ function applyStyleGuide(text) {
     .replace(/triganomotary/gi, "trigonometry")
     .replace(/learner|pupil|boy|girl/gi, "student")
     .replace(/maths/gi, "Mathematics")
-    .replace(/classwork/gi, "class work")
-    .replace(/organise/gi, "organize")
-    .replace(/recognise/gi, "recognize")
-    .replace(/realise/gi, "realize")
     .replace(/needs /gi, "should ")
     .trim();
 }
 
-// ✅ SMART TRAIT FORMATTER (removes “and spam”)
-function formatTraits(text) {
+// ✅ BUILD NATURAL LIST (commas instead of "and")
+function formatList(text) {
   if (!text) return "";
-
-  let t = text.split(" and ").join(", ");
-  return t;
+  return text.replace(/ and /gi, ", ");
 }
 
-// ✅ PRONOUN MIX
-function getRef(step, gender) {
-  const p = pronouns[gender] || "he";
-  return ["^n", capitalise(p), capitalise(p), "^n"][step % 4];
-}
-
-// ✅ EXTENSION PHRASES (for reaching 600 chars)
-const extensions = [
-  "and is continuing to grow in confidence",
-  "while developing a deeper understanding of the subject matter",
-  "and is beginning to work more independently",
-  "which is evident in class participation and task completion"
-];
-
-// ✅ COMMENT ENGINE (ADVANCED)
+// ✅ NEW COMMENT ENGINE (COMPLETELY FIXED)
 function generateComment(data) {
+  const p = pronouns[data.gender] || "he";
+  const P = capitalise(p);
+
+  const traits = formatList(applyStyleGuide(data.traits));
+  const behaviour = applyStyleGuide(data.behaviour);
+  const capabilities = applyStyleGuide(data.capabilities);
+  const topics = applyStyleGuide(data.topics);
+  const concern = applyStyleGuide(data.concern);
+
   let sentences = [];
-  let step = 0;
-  const limit = charLimits[data.length || "medium"];
 
-  const cleanTraits = formatTraits(applyStyleGuide(data.traits));
-  const cleanBehaviour = applyStyleGuide(data.behaviour);
-  const cleanTopics = applyStyleGuide(data.topics);
-  const cleanCapabilities = applyStyleGuide(data.capabilities);
-  const cleanConcern = applyStyleGuide(data.concern);
-
-  const add = (sentence) => {
-    sentence = sentence.trim();
-
-    // ✅ Grammar smoothing
-    sentence = sentence.replace(/, and/g, " and");
-    sentence = sentence.replace(/ and and/g, " and");
-
-    sentence = capitalise(sentence);
-
-    if (!sentence.endsWith(".")) sentence += ".";
-
-    const combined = [...sentences, sentence].join(" ");
-    if (combined.length <= limit) {
-      sentences.push(sentence);
-    }
-  };
-
-  // ✅ 1 TRAITS (FIXED)
-  if (cleanTraits && cleanBehaviour) {
-    add(`${getRef(step++, data.gender)} is ${cleanTraits}, ${cleanBehaviour}, and approaches learning positively`);
+  // ✅ Sentence 1 (PERSONAL)
+  if (traits && behaviour) {
+    sentences.push(
+      `^n is ${traits}, ${behaviour}, and approaches classroom tasks with a positive and engaged attitude`
+    );
   }
 
-  // ✅ 2 CAPABILITIES
-  if (cleanCapabilities) {
-    add(`${getRef(step++, data.gender)} shows ${cleanCapabilities}, which supports academic growth`);
+  // ✅ Sentence 2 (CAPABILITY + ACADEMIC)
+  if (capabilities) {
+    sentences.push(
+      `${P} shows ${capabilities}, which supports progress in ${data.subject} and allows for increasing confidence in applying key skills`
+    );
+  } else {
+    sentences.push(
+      `${P} is making steady progress in ${data.subject} and is becoming more confident in applying key skills`
+    );
   }
 
-  // ✅ 3 ACADEMIC
-  add(`${getRef(step++, data.gender)} is making steady progress in ${data.subject}`);
-
-  // ✅ 4 TOPICS
-  if (cleanTopics) {
-    add(`${getRef(step++, data.gender)} has worked with topics such as ${cleanTopics}`);
+  // ✅ Sentence 3 (TOPICS + DEVELOPMENT)
+  if (topics) {
+    sentences.push(
+      `${P} has worked with topics such as ${topics}, demonstrating developing understanding while beginning to apply knowledge more independently`
+    );
   }
 
-  // ✅ 5 EXTENSIONS (NEW — fills length naturally ✅)
-  while (sentences.join(" ").length < limit - 80) {
-    add(`${getRef(step++, data.gender)} ${extensions[Math.floor(Math.random()*extensions.length)]}`);
+  // ✅ Sentence 4 (CONCLUSION + CONCERN)
+  if (concern) {
+    sentences.push(
+      `${P} should focus on improving ${concern} in order to continue progressing and strengthening overall performance`
+    );
   }
 
-  // ✅ 6 CONCERN
-  if (cleanConcern) {
-    add(`${getRef(step++, data.gender)} should focus on improving ${cleanConcern} to continue making progress`);
+  // ✅ JOIN WITH PROPER PUNCTUATION
+  let comment = sentences.map(s => capitalise(s.trim()) + ".").join(" ");
+
+  // ✅ CONTROL LENGTH (do NOT force garbage)
+  if (comment.length > charLimits[data.length]) {
+    comment = comment.slice(0, charLimits[data.length] - 1) + ".";
   }
 
-  return sentences.join(" ");
+  return comment;
 }
 
 export default function App() {
   const [names, setNames] = useState([]);
   const [comments, setComments] = useState([]);
 
+  // CSV Upload
   const handleUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -148,12 +124,20 @@ export default function App() {
 
         const [name, gender, subject, traits, behaviour, topics, capabilities, concern, length] = values;
 
-        const comment = generateComment({
-          gender, subject, traits, behaviour, topics, capabilities, concern, length
-        });
-
         newNames.push(name);
-        newComments.push(comment);
+
+        newComments.push(
+          generateComment({
+            gender,
+            subject,
+            traits,
+            behaviour,
+            topics,
+            capabilities,
+            concern,
+            length
+          })
+        );
       }
 
       setNames(newNames);
@@ -163,6 +147,7 @@ export default function App() {
     reader.readAsText(file);
   };
 
+  // Template
   const downloadTemplate = () => {
     const csv =
       "name,gender,subject,traits,behaviour,topics,capabilities,concern,length\n" +
@@ -175,7 +160,7 @@ export default function App() {
     a.click();
   };
 
-  // ✅ WORD TABLE EXPORT
+  // Word Export
   const exportToWord = () => {
     let content = "<table border='1' style='border-collapse: collapse;'>";
 
