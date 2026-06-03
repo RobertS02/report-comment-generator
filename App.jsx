@@ -39,26 +39,74 @@ function capitalise(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-// ✅ STYLE GUIDE CLEANER (from your documents)
+// ✅ STYLE GUIDE CLEANER
 function applyStyleGuide(text) {
   if (!text) return "";
 
   return text
-    .replace(/learner|pupil|boy|girl/gi, "student") // enforce "student"
+    .replace(/learner|pupil|boy|girl/gi, "student")
+    .replace(/insightfil/gi, "insightful")
+    .replace(/triganomotary/gi, "trigonometry")
     .replace(/maths/gi, "Mathematics")
     .replace(/classwork/gi, "class work")
     .replace(/cocurricular/gi, "co-curricular")
-    .replace(/insightfil/gi, "insightful")
-    .replace(/triganomotary/gi, "trigonometry")
     .replace(/organise/gi, "organize")
     .replace(/recognise/gi, "recognize")
     .replace(/realise/gi, "realize")
     .replace(/focussed/gi, "focused")
-    .replace(/needs /gi, "should ") // softer tone
+    .replace(/needs /gi, "should ")
     .trim();
 }
 
-// MAIN COMPONENT
+// ✅ CORE COMMENT ENGINE
+function generateComment(data) {
+  let text = "";
+  const limit = charLimits[data.length || "medium"];
+
+  const p = pronouns[data.gender] || "he";
+  const P = capitalise(p);
+
+  const cleanTraits = applyStyleGuide(data.traits);
+  const cleanBehaviour = applyStyleGuide(data.behaviour);
+  const cleanTopics = applyStyleGuide(data.topics);
+  const cleanCapabilities = applyStyleGuide(data.capabilities);
+  const cleanConcern = applyStyleGuide(data.concern);
+
+  const add = (sentence) => {
+    const s = capitalise(sentence);
+    if ((text + " " + s).trim().length <= limit) {
+      text += (text ? " " : "") + s;
+    }
+  };
+
+  // ✅ 1. Traits + behaviour (human opening)
+  if (cleanTraits && cleanBehaviour) {
+    add(`^n is ${cleanTraits} and ${cleanBehaviour}, and ${p} approaches lessons with a positive attitude`);
+  } else if (cleanTraits) {
+    add(`^n is ${cleanTraits} and ${p} engages positively during lessons`);
+  }
+
+  // ✅ 2. Capabilities
+  if (cleanCapabilities) {
+    add(`${P} shows ${cleanCapabilities}, which supports continued academic growth`);
+  }
+
+  // ✅ 3. Academic
+  add(`${P} is making steady progress in ${data.subject} and is becoming more confident in applying key skills`);
+
+  // ✅ 4. Topics
+  if (cleanTopics) {
+    add(`${P} has worked with topics such as ${cleanTopics} and is developing a stronger understanding`);
+  }
+
+  // ✅ 5. Concern
+  if (cleanConcern) {
+    add(`${P} should focus on improving ${cleanConcern} to continue making progress`);
+  }
+
+  return text + ".";
+}
+
 export default function App() {
   const [name, setName] = useState("");
   const [gender, setGender] = useState("male");
@@ -70,54 +118,70 @@ export default function App() {
   const [concern, setConcern] = useState("");
   const [length, setLength] = useState("medium");
   const [comment, setComment] = useState("");
+  const [bulkComments, setBulkComments] = useState([]);
 
+  // ✅ SINGLE COMMENT
   const generate = () => {
-    let text = "";
-    const limit = charLimits[length];
+    const result = generateComment({
+      name,
+      gender,
+      subject,
+      traits,
+      behaviour,
+      topics,
+      capabilities,
+      concern,
+      length
+    });
 
-    const p = getPronoun(gender);
-    const P = capitalise(p);
+    setComment(result);
+  };
 
-    // Clean inputs
-    const cleanTraits = applyStyleGuide(traits);
-    const cleanBehaviour = applyStyleGuide(behaviour);
-    const cleanTopics = applyStyleGuide(topics);
-    const cleanCapabilities = applyStyleGuide(capabilities);
-    const cleanConcern = applyStyleGuide(concern);
+  // ✅ BULK CSV UPLOAD
+  const handleUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    const add = (sentence) => {
-      const s = capitalise(sentence);
-      if ((text + " " + s).trim().length <= limit) {
-        text += (text ? " " : "") + s;
-      }
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const rows = event.target.result.split("\n").slice(1);
+
+      const generated = rows.map((row) => {
+        const [name, gender, subject, traits, behaviour, topics, capabilities, concern, length] = row.split(",");
+
+        if (!name) return null;
+
+        return generateComment({
+          name,
+          gender,
+          subject,
+          traits,
+          behaviour,
+          topics,
+          capabilities,
+          concern,
+          length
+        });
+
+      }).filter(Boolean);
+
+      setBulkComments(generated);
     };
 
-    // ✅ 1. TRAITS + BEHAVIOUR (OPENING HUMAN LINE)
-    if (cleanTraits && cleanBehaviour) {
-      add(`^n is ${cleanTraits} and ${cleanBehaviour}, and ${p} approaches lessons with a positive attitude`);
-    } else if (cleanTraits) {
-      add(`^n is ${cleanTraits} and ${p} engages positively during lessons`);
-    }
+    reader.readAsText(file);
+  };
 
-    // ✅ 2. CAPABILITIES (STRENGTH)
-    if (cleanCapabilities) {
-      add(`${P} shows ${cleanCapabilities}, which supports continued academic growth`);
-    }
+  // ✅ EXPORT TO WORD
+  const exportToWord = () => {
+    const all = [comment, ...bulkComments].join("\n\n");
 
-    // ✅ 3. ACADEMIC PERFORMANCE (SUBJECT-BASED)
-    add(`${P} is making good progress in ${subject} and is becoming more confident in applying key skills`);
+    const blob = new Blob([all], { type: "application/msword" });
 
-    // ✅ 4. TOPICS COVERED
-    if (cleanTopics) {
-      add(`${P} has worked with topics such as ${cleanTopics} and is developing a stronger understanding`);
-    }
-
-    // ✅ 5. CONCERN (SOFTENED + DEVELOPMENTAL)
-    if (cleanConcern) {
-      add(`${P} should focus on improving ${cleanConcern} to continue making progress`);
-    }
-
-    setComment(text + ".");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "report-comments.doc";
+    a.click();
   };
 
   return (
@@ -125,7 +189,6 @@ export default function App() {
       <h1>Report Comment Generator</h1>
 
       <Box>
-        {/* ORDER CORRECT ✅ */}
 
         <input placeholder="Learner name" value={name} onChange={(e) => setName(e.target.value)} />
 
@@ -141,13 +204,9 @@ export default function App() {
         </select>
 
         <input placeholder="Learner traits" value={traits} onChange={(e) => setTraits(e.target.value)} />
-
         <input placeholder="Behaviour" value={behaviour} onChange={(e) => setBehaviour(e.target.value)} />
-
         <input placeholder="Topics covered" value={topics} onChange={(e) => setTopics(e.target.value)} />
-
         <input placeholder="Capabilities" value={capabilities} onChange={(e) => setCapabilities(e.target.value)} />
-
         <input placeholder="Area of concern" value={concern} onChange={(e) => setConcern(e.target.value)} />
 
         <label>Length</label>
@@ -158,6 +217,9 @@ export default function App() {
         </select>
 
         <Button onClick={generate}>Generate Comment</Button>
+        <Button onClick={exportToWord}>Export to Word</Button>
+
+        <input type="file" accept=".csv" onChange={handleUpload} />
 
         <p>Characters: {comment.length} / {charLimits[length]}</p>
       </Box>
@@ -166,6 +228,14 @@ export default function App() {
         <p>{comment}</p>
       </Box>
 
+      {bulkComments.length > 0 && (
+        <Box>
+          <h3>Bulk Comments</h3>
+          {bulkComments.map((c, i) => (
+            <p key={i}>{c}</p>
+          ))}
+        </Box>
+      )}
     </div>
   );
 }
