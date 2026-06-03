@@ -11,10 +11,9 @@ const Button = (props) => (
   <button style={{ padding: 8, margin: 5 }} {...props} />
 );
 
-// SETTINGS
-const charLimits = { short: 180, medium: 300, long: 450 };
+// SETTINGS (UPDATED ✅)
+const charLimits = { short: 200, medium: 400, long: 600 };
 
-// DATA
 const pronouns = { male: "he", female: "she" };
 
 // HELPERS
@@ -42,64 +41,92 @@ function applyStyleGuide(text) {
     .trim();
 }
 
-// ✅ PRONOUN CYCLING
+// ✅ SMART TRAIT FORMATTER (removes “and spam”)
+function formatTraits(text) {
+  if (!text) return "";
+
+  let t = text.split(" and ").join(", ");
+  return t;
+}
+
+// ✅ PRONOUN MIX
 function getRef(step, gender) {
   const p = pronouns[gender] || "he";
   return ["^n", capitalise(p), capitalise(p), "^n"][step % 4];
 }
 
-// ✅ COMMENT ENGINE (FULLY FIXED)
+// ✅ EXTENSION PHRASES (for reaching 600 chars)
+const extensions = [
+  "and is continuing to grow in confidence",
+  "while developing a deeper understanding of the subject matter",
+  "and is beginning to work more independently",
+  "which is evident in class participation and task completion"
+];
+
+// ✅ COMMENT ENGINE (ADVANCED)
 function generateComment(data) {
   let sentences = [];
   let step = 0;
   const limit = charLimits[data.length || "medium"];
 
-  const cleanTraits = applyStyleGuide(data.traits);
+  const cleanTraits = formatTraits(applyStyleGuide(data.traits));
   const cleanBehaviour = applyStyleGuide(data.behaviour);
   const cleanTopics = applyStyleGuide(data.topics);
   const cleanCapabilities = applyStyleGuide(data.capabilities);
   const cleanConcern = applyStyleGuide(data.concern);
 
   const add = (sentence) => {
-    sentence = capitalise(sentence.trim());
+    sentence = sentence.trim();
+
+    // ✅ Grammar smoothing
+    sentence = sentence.replace(/, and/g, " and");
+    sentence = sentence.replace(/ and and/g, " and");
+
+    sentence = capitalise(sentence);
+
     if (!sentence.endsWith(".")) sentence += ".";
+
     const combined = [...sentences, sentence].join(" ");
     if (combined.length <= limit) {
       sentences.push(sentence);
     }
   };
 
-  // ✅ 1 Traits + Behaviour
+  // ✅ 1 TRAITS (FIXED)
   if (cleanTraits && cleanBehaviour) {
-    add(`${getRef(step++, data.gender)} is ${cleanTraits} and ${cleanBehaviour} and approaches learning positively`);
+    add(`${getRef(step++, data.gender)} is ${cleanTraits}, ${cleanBehaviour}, and approaches learning positively`);
   }
 
-  // ✅ 2 Capabilities
+  // ✅ 2 CAPABILITIES
   if (cleanCapabilities) {
     add(`${getRef(step++, data.gender)} shows ${cleanCapabilities}, which supports academic growth`);
   }
 
-  // ✅ 3 Academic
+  // ✅ 3 ACADEMIC
   add(`${getRef(step++, data.gender)} is making steady progress in ${data.subject}`);
 
-  // ✅ 4 Topics
+  // ✅ 4 TOPICS
   if (cleanTopics) {
     add(`${getRef(step++, data.gender)} has worked with topics such as ${cleanTopics}`);
   }
 
-  // ✅ 5 Concern
+  // ✅ 5 EXTENSIONS (NEW — fills length naturally ✅)
+  while (sentences.join(" ").length < limit - 80) {
+    add(`${getRef(step++, data.gender)} ${extensions[Math.floor(Math.random()*extensions.length)]}`);
+  }
+
+  // ✅ 6 CONCERN
   if (cleanConcern) {
-    add(`${getRef(step++, data.gender)} should focus on improving ${cleanConcern}`);
+    add(`${getRef(step++, data.gender)} should focus on improving ${cleanConcern} to continue making progress`);
   }
 
   return sentences.join(" ");
 }
 
 export default function App() {
-  const [bulkData, setBulkData] = useState([]);
-  const [bulkComments, setBulkComments] = useState([]);
+  const [names, setNames] = useState([]);
+  const [comments, setComments] = useState([]);
 
-  // ✅ UPLOAD FIXED
   const handleUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -107,12 +134,13 @@ export default function App() {
     const reader = new FileReader();
 
     reader.onload = (event) => {
-      const lines = event.target.result.split("\n");
-      const data = [];
-      const comments = [];
+      const rows = event.target.result.split("\n");
 
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].trim();
+      const newNames = [];
+      const newComments = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i].trim();
         if (!row) continue;
 
         const values = row.split(",").map(v => clean(v));
@@ -121,43 +149,41 @@ export default function App() {
         const [name, gender, subject, traits, behaviour, topics, capabilities, concern, length] = values;
 
         const comment = generateComment({
-          name, gender, subject, traits, behaviour, topics, capabilities, concern, length
+          gender, subject, traits, behaviour, topics, capabilities, concern, length
         });
 
-        data.push(name);
-        comments.push(comment);
+        newNames.push(name);
+        newComments.push(comment);
       }
 
-      setBulkData(data);
-      setBulkComments(comments);
+      setNames(newNames);
+      setComments(newComments);
     };
 
     reader.readAsText(file);
   };
 
-  // ✅ DOWNLOAD TEMPLATE
   const downloadTemplate = () => {
     const csv =
       "name,gender,subject,traits,behaviour,topics,capabilities,concern,length\n" +
-      "John,male,Mathematics,positive and respectful,well-behaved,algebra,strong reasoning,accuracy,medium\n" +
-      "Lisa,female,English Home Language,focused and motivated,engaging,essay writing,clear expression,grammar,long";
+      "John,male,Mathematics,positive and respectful and well-behaved,engaging,algebra,strong reasoning,accuracy,long";
 
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "report_template.csv";
+    a.download = "template.csv";
     a.click();
   };
 
-  // ✅ WORD EXPORT TABLE ✅✅✅
+  // ✅ WORD TABLE EXPORT
   const exportToWord = () => {
     let content = "<table border='1' style='border-collapse: collapse;'>";
 
-    for (let i = 0; i < bulkComments.length; i++) {
+    for (let i = 0; i < comments.length; i++) {
       content += `
         <tr>
-          <td style="padding:8px;"><b>${bulkData[i]}</b></td>
-          <td style="padding:8px;">${bulkComments[i]}</td>
+          <td style="padding:8px;"><b>${names[i]}</b></td>
+          <td style="padding:8px;">${comments[i]}</td>
         </tr>
       `;
     }
@@ -184,8 +210,10 @@ export default function App() {
 
       <Box>
         <h3>Bulk Comments</h3>
-        {bulkComments.map((c, i) => (
-          <p key={i}>{c}</p>
+        {comments.map((c, i) => (
+          <p key={i}>
+            <b>{names[i]}</b>: {c}
+          </p>
         ))}
       </Box>
     </div>
