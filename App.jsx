@@ -72,13 +72,6 @@ const topicStarters = [
   "has been introduced to concepts such as"
 ];
 
-const traitsStarters = [
-  "participates actively in class",
-  "engages positively during lessons",
-  "is increasingly confident during class activities",
-  "shows a willingness to take part in learning activities"
-];
-
 const behaviourPhrases = [
   "works well in the classroom",
   "is a positive part of the class",
@@ -96,6 +89,7 @@ const pronouns = {
   female: "she"
 };
 
+// HELPERS
 function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -105,6 +99,21 @@ function getReference(step, gender) {
   return ["^n", p, p, "^n", p][step % 5];
 }
 
+// ✅ FIX 1: Capitalisation
+function fixSentence(sentence) {
+  if (!sentence) return "";
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
+// ✅ FIX 2: Basic spelling clean-up
+function cleanInput(text) {
+  if (!text) return "";
+  return text
+    .replace(/triganomotary/gi, "trigonometry")
+    .trim();
+}
+
+// MAIN COMPONENT
 export default function App() {
   const [subject, setSubject] = useState(subjects[0]);
   const [topics, setTopics] = useState("");
@@ -119,36 +128,40 @@ export default function App() {
     let step = 0;
     const limit = charLimits[length];
 
+    // Clean inputs
+    const cleanTopics = cleanInput(topics);
+    const cleanTraits = cleanInput(traits);
+    const cleanConcern = cleanInput(concern);
+
     const add = (sentence) => {
-      if ((text + " " + sentence).trim().length <= limit) {
-        text += (text ? " " : "") + sentence;
+      const fixed = fixSentence(sentence);
+      if ((text + " " + fixed).trim().length <= limit) {
+        text += (text ? " " : "") + fixed;
       }
     };
 
     // Opening
     add(`${pick(openings)} ${pick(effortPhrases)} in ${subject}.`);
 
-    // Performance
-    add(`${getReference(step++, gender)} ${pick(performanceStarters)} ${pick(subjectPhrases[subject])}.`);
+    // Performance (improved flow)
+    add(`${getReference(step++, gender)} ${pick(performanceStarters)} ${pick(subjectPhrases[subject])} and is becoming more confident.`);
 
     // Topics
-    if (topics) {
-      add(`${getReference(step++, gender)} ${pick(topicStarters)} ${topics}.`);
+    if (cleanTopics) {
+      add(`${getReference(step++, gender)} ${pick(topicStarters)} ${cleanTopics}.`);
     }
 
-    // Traits
-    if (traits) {
-      add(`${getReference(step++, gender)} ${traits}.`);
-    } else {
-      add(`${getReference(step++, gender)} ${pick(traitsStarters)}.`);
+    // ✅ FIX: Traits grammar
+    if (cleanTraits) {
+      add(`${getReference(step++, gender)} is ${cleanTraits}.`);
     }
 
     // Behaviour
     add(`${getReference(step++, gender)} ${pick(behaviourPhrases)}.`);
 
     // Concern
-    if (concern) {
-      add(`${getReference(step++, gender)} ${pick(concernStarters)} ${concern}.`);
+    if (cleanConcern) {
+      add(`${getReference(step++, gender)} ${pick(concernStarters)} ${cleanConcern}.`);
     }
 
     setComment(text);
@@ -177,7 +190,7 @@ export default function App() {
           <option value="long">Long</option>
         </select>
 
-        <input placeholder="Topics covered (e.g. algebra, essays)" value={topics} onChange={(e) => setTopics(e.target.value)} />
+        <input placeholder="Topics covered" value={topics} onChange={(e) => setTopics(e.target.value)} />
         <input placeholder="Learner traits" value={traits} onChange={(e) => setTraits(e.target.value)} />
         <input placeholder="Area of concern" value={concern} onChange={(e) => setConcern(e.target.value)} />
 
@@ -192,3 +205,4 @@ export default function App() {
     </div>
   );
 }
+``
