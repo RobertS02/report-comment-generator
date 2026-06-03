@@ -43,7 +43,7 @@ function formatList(text) {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
-// ✅ ✅ ✅ FINAL HUMAN COMMENT ENGINE (REPLACED)
+// ✅ ✅ ✅ MULTI-STYLE HUMAN COMMENT ENGINE (ONLY CHANGE)
 //////////////////////////////////////////////////////////////////////////////////////
 function generateComment(data) {
   const p = pronouns[data.gender] || "he";
@@ -55,65 +55,90 @@ function generateComment(data) {
   const topics = applyStyleGuide(data.topics);
   const concern = applyStyleGuide(data.concern);
 
-  // ✅ Variation banks
-  const capabilityEndings = [
-    "and is becoming more confident in applying these skills",
-    "and applies these skills effectively in class",
-    "and continues to grow in confidence"
+  const endings = [
+    "and is becoming more confident in his work",
+    "and continues to show steady improvement",
+    "and applies these skills effectively in class"
   ];
 
   const topicEndings = [
     "and is showing a growing understanding",
-    "and is becoming more comfortable with the work",
-    "and applies this knowledge in class tasks"
+    "and is becoming more comfortable with the content",
+    "and is beginning to apply this knowledge independently"
   ];
 
-  const shortClosers = [
+  const closers = [
     "This is encouraging.",
-    "This is evident in class.",
-    "This progress is pleasing."
+    "This progress is pleasing.",
+    "This is evident in class."
   ];
 
+  const style = Math.floor(Math.random() * 3);
   let sentences = [];
 
-  // ✅ Sentence 1 (natural opening)
-  if (traits && behaviour) {
-    sentences.push(
-      `^n is ${traits}, ${behaviour}, and approaches classroom tasks with a positive attitude`
-    );
+  // ✅ STYLE A
+  if (style === 0) {
+    if (traits && behaviour) {
+      sentences.push(`^n is ${traits}, ${behaviour}, and approaches classroom tasks positively`);
+    }
+
+    if (capabilities) {
+      sentences.push(`${P} shows ${capabilities}, ${endings[Math.floor(Math.random()*endings.length)]} in ${data.subject}`);
+    }
+
+    if (topics) {
+      sentences.push(`${P} has worked with topics such as ${topics}, ${topicEndings[Math.floor(Math.random()*topicEndings.length)]}`);
+    }
+
+    sentences.push(closers[Math.floor(Math.random()*closers.length)]);
+
+    if (concern) {
+      sentences.push(`${P} should continue to work on ${concern} to strengthen overall performance`);
+    }
   }
 
-  // ✅ Sentence 2 (capability + academic)
-  if (capabilities) {
-    sentences.push(
-      `${P} shows ${capabilities}, ${capabilityEndings[Math.floor(Math.random()*capabilityEndings.length)]} in ${data.subject}`
-    );
-  } else {
-    sentences.push(
-      `${P} is making steady progress in ${data.subject} and is becoming more confident in his work`
-    );
+  // ✅ STYLE B
+  if (style === 1) {
+    if (traits && behaviour) {
+      sentences.push(`^n is ${traits} and ${behaviour}, and contributes positively in class`);
+    }
+
+    if (topics) {
+      sentences.push(`${P} has engaged with work on ${topics}, and is developing greater confidence`);
+    }
+
+    if (capabilities) {
+      sentences.push(`${P} demonstrates ${capabilities} in ${data.subject}`);
+    }
+
+    sentences.push(closers[Math.floor(Math.random()*closers.length)]);
+
+    if (concern) {
+      sentences.push(`${P} would benefit from focusing more on ${concern}`);
+    }
   }
 
-  // ✅ Sentence 3 (topics)
-  if (topics) {
-    sentences.push(
-      `${P} has worked with topics such as ${topics}, ${topicEndings[Math.floor(Math.random()*topicEndings.length)]}`
-    );
+  // ✅ STYLE C
+  if (style === 2) {
+    if (traits) {
+      sentences.push(`^n is a ${traits} student who approaches learning with a positive attitude`);
+    }
+
+    sentences.push(`${P} is making good progress in ${data.subject}`);
+
+    if (capabilities) {
+      sentences.push(`${P} shows ${capabilities}, and is becoming increasingly confident`);
+    }
+
+    if (topics) {
+      sentences.push(`${P} has covered topics such as ${topics}, and applies understanding in class`);
+    }
+
+    if (concern) {
+      sentences.push(`${P} should focus on ${concern} to continue improving`);
+    }
   }
 
-  // ✅ Sentence 4 (short human sentence)
-  sentences.push(
-    shortClosers[Math.floor(Math.random()*shortClosers.length)]
-  );
-
-  // ✅ Sentence 5 (concern)
-  if (concern) {
-    sentences.push(
-      `${P} should continue to work on ${concern} to strengthen overall performance`
-    );
-  }
-
-  // ✅ Build final comment
   return sentences
     .map(s => capitalise(s.trim()) + (s.endsWith(".") ? "" : "."))
     .join(" ");
