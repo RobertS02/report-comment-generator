@@ -21,35 +21,36 @@ const subjects = [
   "Afrikaans First Additional Language"
 ];
 
-const pronouns = {
-  male: "he",
-  female: "she"
-};
+const pronouns = { male: "he", female: "she" };
 
 // HELPERS
 function capitalise(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+function clean(value) {
+  return value ? value.trim() : "";
+}
+
+// STYLE GUIDE
 function applyStyleGuide(text) {
   if (!text) return "";
 
   return text
-    .replace(/learner|pupil|boy|girl/gi, "student")
     .replace(/insightfil/gi, "insightful")
     .replace(/triganomotary/gi, "trigonometry")
+    .replace(/learner|pupil|boy|girl/gi, "student")
     .replace(/maths/gi, "Mathematics")
     .replace(/classwork/gi, "class work")
     .replace(/cocurricular/gi, "co-curricular")
     .replace(/organise/gi, "organize")
     .replace(/recognise/gi, "recognize")
     .replace(/realise/gi, "realize")
-    .replace(/focussed/gi, "focused")
     .replace(/needs /gi, "should ")
     .trim();
 }
 
-// ✅ CORE COMMENT ENGINE
+// CORE ENGINE
 function generateComment(data) {
   let text = "";
   const limit = charLimits[data.length || "medium"];
@@ -70,65 +71,32 @@ function generateComment(data) {
     }
   };
 
-  // ✅ 1. Traits + Behaviour
   if (cleanTraits && cleanBehaviour) {
-    add(`^n is ${cleanTraits} and ${cleanBehaviour}, and ${p} approaches lessons with a positive attitude`);
-  } else if (cleanTraits) {
-    add(`^n is ${cleanTraits} and ${p} engages positively during lessons`);
+    add(`^n is ${cleanTraits} and ${cleanBehaviour}, and ${p} approaches learning positively`);
   }
 
-  // ✅ 2. Capabilities
   if (cleanCapabilities) {
     add(`${P} shows ${cleanCapabilities}, which supports continued academic growth`);
   }
 
-  // ✅ 3. Academic
-  add(`${P} is making steady progress in ${data.subject} and is becoming more confident in applying key skills`);
+  add(`${P} is making steady progress in ${data.subject}`);
 
-  // ✅ 4. Topics
   if (cleanTopics) {
-    add(`${P} has worked with topics such as ${cleanTopics} and is developing a stronger understanding`);
+    add(`${P} has worked with topics such as ${cleanTopics}`);
   }
 
-  // ✅ 5. Concern
   if (cleanConcern) {
-    add(`${P} should focus on improving ${cleanConcern} to continue making progress`);
+    add(`${P} should focus on improving ${cleanConcern}`);
   }
 
   return text + ".";
 }
 
 export default function App() {
-  const [name, setName] = useState("");
-  const [gender, setGender] = useState("male");
-  const [subject, setSubject] = useState(subjects[0]);
-  const [traits, setTraits] = useState("");
-  const [behaviour, setBehaviour] = useState("");
-  const [topics, setTopics] = useState("");
-  const [capabilities, setCapabilities] = useState("");
-  const [concern, setConcern] = useState("");
-  const [length, setLength] = useState("medium");
   const [comment, setComment] = useState("");
   const [bulkComments, setBulkComments] = useState([]);
 
-  // ✅ Single
-  const generate = () => {
-    const result = generateComment({
-      name,
-      gender,
-      subject,
-      traits,
-      behaviour,
-      topics,
-      capabilities,
-      concern,
-      length
-    });
-
-    setComment(result);
-  };
-
-  // ✅ BULK UPLOAD
+  // ✅ BULK FIXED
   const handleUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -136,9 +104,19 @@ export default function App() {
     const reader = new FileReader();
 
     reader.onload = (event) => {
-      const rows = event.target.result.split("\n").slice(1);
+      const lines = event.target.result.split("\n");
 
-      const generated = rows.map((row) => {
+      const generated = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].trim();
+
+        if (!row) continue;
+
+        const values = row.split(",").map(v => clean(v));
+
+        if (values.length < 9) continue;
+
         const [
           name,
           gender,
@@ -149,11 +127,9 @@ export default function App() {
           capabilities,
           concern,
           length
-        ] = row.split(",");
+        ] = values;
 
-        if (!name) return null;
-
-        return generateComment({
+        const result = generateComment({
           name,
           gender,
           subject,
@@ -165,7 +141,10 @@ export default function App() {
           length
         });
 
-      }).filter(Boolean);
+        generated.push(result);
+      }
+
+      console.log("Generated:", generated); // ✅ Debug help
 
       setBulkComments(generated);
     };
@@ -173,9 +152,9 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // ✅ EXPORT WORD
+  // ✅ EXPORT
   const exportToWord = () => {
-    const all = [comment, ...bulkComments].join("\n\n");
+    const all = bulkComments.join("\n\n");
 
     const blob = new Blob([all], { type: "application/msword" });
 
@@ -185,22 +164,16 @@ export default function App() {
     a.click();
   };
 
-  // ✅ DOWNLOAD TEMPLATE
+  // ✅ TEMPLATE
   const downloadTemplate = () => {
-    const headers =
-      "name,gender,subject,traits,behaviour,topics,capabilities,concern,length\n";
-
-    const example1 =
-      "John,male,Mathematics,positive and respectful,well-behaved,algebra,strong problem-solving,accuracy,medium\n";
-
-    const example2 =
+    const csv =
+      "name,gender,subject,traits,behaviour,topics,capabilities,concern,length\n" +
+      "John,male,Mathematics,positive and respectful,well-behaved,algebra,strong reasoning,accuracy,medium\n" +
       "Lisa,female,English Home Language,focused and motivated,engaging,essay writing,clear expression,grammar,long";
 
-    const csv = headers + example1 + example2;
-
     const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
 
+    const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "report_template.csv";
     a.click();
@@ -211,59 +184,17 @@ export default function App() {
       <h1>Report Comment Generator</h1>
 
       <Box>
-
-        <input placeholder="Learner name" value={name} onChange={(e) => setName(e.target.value)} />
-
-        <label>Gender</label>
-        <select value={gender} onChange={(e) => setGender(e.target.value)}>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-
-        <label>Subject</label>
-        <select value={subject} onChange={(e) => setSubject(e.target.value)}>
-          {subjects.map((s) => <option key={s}>{s}</option>)}
-        </select>
-
-        <input placeholder="Learner traits" value={traits} onChange={(e) => setTraits(e.target.value)} />
-        <input placeholder="Behaviour" value={behaviour} onChange={(e) => setBehaviour(e.target.value)} />
-        <input placeholder="Topics covered" value={topics} onChange={(e) => setTopics(e.target.value)} />
-        <input placeholder="Capabilities" value={capabilities} onChange={(e) => setCapabilities(e.target.value)} />
-        <input placeholder="Area of concern" value={concern} onChange={(e) => setConcern(e.target.value)} />
-
-        <label>Length</label>
-        <select value={length} onChange={(e) => setLength(e.target.value)}>
-          <option value="short">Short</option>
-          <option value="medium">Medium</option>
-          <option value="long">Long</option>
-        </select>
-
-        <br />
-
-        <Button onClick={generate}>Generate Comment</Button>
-        <Button onClick={exportToWord}>Export to Word</Button>
-        <Button onClick={downloadTemplate}>Download Excel Template</Button>
-
-        <br />
-
+        <Button onClick={downloadTemplate}>Download Template</Button>
         <input type="file" accept=".csv" onChange={handleUpload} />
-
-        <p>Characters: {comment.length} / {charLimits[length]}</p>
+        <Button onClick={exportToWord}>Export to Word</Button>
       </Box>
 
       <Box>
-        <p>{comment}</p>
+        <h3>Bulk Comments</h3>
+        {bulkComments.map((c, i) => (
+          <p key={i}>{c}</p>
+        ))}
       </Box>
-
-      {bulkComments.length > 0 && (
-        <Box>
-          <h3>Bulk Comments</h3>
-          {bulkComments.map((c, i) => (
-            <p key={i}>{c}</p>
-          ))}
-        </Box>
-      )}
-
     </div>
   );
 }
